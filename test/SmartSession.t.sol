@@ -255,11 +255,14 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: actionId, actionPolicies: actionPolicyData });
 
+        ERC7739Data memory erc7739Data =
+            ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
+
         enableData = EnableSessions({
             isigner: ISigner(address(simpleSigner)),
             isignerInitData: abi.encodePacked(sessionSigner2.addr),
             userOpPolicies: userOpPolicyData,
-            erc1271Policies: new PolicyData[](0),
+            erc7739Policies: erc7739Data,
             actions: actions,
             permissionEnableSig: ""
         });

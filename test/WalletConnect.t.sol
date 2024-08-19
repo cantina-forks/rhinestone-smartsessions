@@ -105,11 +105,14 @@ contract MultiKeySignerTest is SmartSessionBaseTest {
         ActionData[] memory actions = new ActionData[](1);
         actions[0] = ActionData({ actionId: ActionId.wrap(bytes32(hex"4242424201")), actionPolicies: policyData });
 
+        ERC7739Data memory erc7739Data =
+            ERC7739Data({ allowedERC7739Content: new string[](0), erc1271Policies: new PolicyData[](0) });
+
         EnableSessions memory enableData = EnableSessions({
             isigner: ISigner(address(cosigner)),
             isignerInitData: params,
             userOpPolicies: policyData,
-            erc1271Policies: new PolicyData[](0),
+            erc7739Policies: erc7739Data,
             actions: actions,
             permissionEnableSig: ""
         });

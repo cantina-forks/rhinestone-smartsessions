@@ -43,7 +43,8 @@ abstract contract SmartSessionERC1271 is EIP712 {
     function _erc1271IsValidSignatureNowCalldata(
         address sender,
         bytes32 hash,
-        bytes calldata signature
+        bytes calldata signature,
+        bytes calldata contents
     )
         internal
         view
@@ -150,7 +151,7 @@ abstract contract SmartSessionERC1271 is EIP712 {
         returns (bool result)
     {
         bytes32 t = _typedDataSignFields();
-        bytes32 _content;
+        bytes calldata contents = signature;
         /// @solidity memory-safe-assembly
         assembly {
             let m := mload(0x40) // Cache the free memory pointer.
@@ -176,6 +177,8 @@ abstract contract SmartSessionERC1271 is EIP712 {
                 mstore(m, "TypedDataSign(") // Store the start of `TypedDataSign`'s type encoding.
                 let p := add(m, 0x0e) // Advance 14 bytes to skip "TypedDataSign(".
                 calldatacopy(p, add(o, 0x40), c) // Copy `contentsType` to extract `contentsName`.
+                contents.offset := add(o, 0x40) // Set the offset of `contents`.
+                contents.length := c // Set the length of `contents`.
                 // `d & 1 == 1` means that `contentsName` is invalid.
                 let d := shr(byte(0, mload(p)), 0x7fffffe000000000000010000000000) // Starts with `[a-z(]`.
                 // Store the end sentinel '(', and advance `p` until we encounter a '(' byte.
@@ -197,14 +200,13 @@ abstract contract SmartSessionERC1271 is EIP712 {
                 // Compute the final hash, corrupted if `contentsName` is invalid.
                 hash := keccak256(0x1e, add(0x42, and(1, d)))
                 signature.length := sub(signature.length, l) // Truncate the signature.
-                _content := p
+
                 break
             }
             mstore(0x40, m) // Restore the free memory pointer.
         }
-        console2.logBytes32(_content);
         if (t == bytes32(0)) hash = _hashTypedData(hash); // `PersonalSign` workflow.
-        result = _erc1271IsValidSignatureNowCalldata(sender, hash, signature);
+        result = _erc1271IsValidSignatureNowCalldata(sender, hash, signature, contents);
     }
 
     /// @dev For use in `_erc1271IsValidSignatureViaNestedEIP712`,

@@ -59,6 +59,7 @@ library PolicyLib {
         bytes32 hash,
         bytes calldata signature,
         SignerId signerId,
+        SessionId sessionId,
         uint256 minPoliciesToEnforce
     )
         internal
@@ -68,8 +69,6 @@ library PolicyLib {
         (address[] memory policies,) = $self.policyList[signerId].getEntriesPaginated(account, SENTINEL, 32);
         uint256 length = policies.length;
         if (minPoliciesToEnforce > length) revert NoPoliciesSet(signerId);
-
-        SessionId sessionId; // TODO: derive sessionId
 
         // iterate over all policies and intersect the validation data
         for (uint256 i; i < length; i++) {

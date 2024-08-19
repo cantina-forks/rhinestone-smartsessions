@@ -24,7 +24,8 @@ library HashLib {
                 address(enableSession.isigner),
                 keccak256(enableSession.isignerInitData),
                 hashPolicyDataArray(enableSession.userOpPolicies),
-                hashPolicyDataArray(enableSession.erc1271Policies),
+                hashPolicyDataArray(enableSession.erc7739Policies.erc1271Policies),
+                // TODO: hashPolicyDataArray(enableSession.erc1271Policies.allowedERC1271Content)
                 hashActionDataArray(enableSession.actions),
                 keccak256(enableSession.permissionEnableSig),
                 nonce

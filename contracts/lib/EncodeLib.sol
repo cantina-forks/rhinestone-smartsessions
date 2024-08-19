@@ -92,7 +92,7 @@ library EncodeLib {
                 data.isigner,
                 data.isignerInitData,
                 data.userOpPolicies,
-                data.erc1271Policies,
+                data.erc7739Policies,
                 data.actions
             )
         );

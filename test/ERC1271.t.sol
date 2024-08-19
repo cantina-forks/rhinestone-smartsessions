@@ -32,7 +32,7 @@ contract SmartSessionERC1271Test is SmartSessionBaseTest {
     }
 
     function test_ERC1271() public {
-        _testIsValidSignature("Contents(bytes32 stuff)", true);
+        _testIsValidSignature("Permit2(bytes32 stuff)", true);
     }
 
     bytes32 internal constant _PARENT_TYPEHASH = 0xd61db970ec8a2edc5f9fd31d876abe01b785909acb16dcd4baaf3b434b4c439b;

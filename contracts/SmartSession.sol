@@ -156,7 +156,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
         $erc1271Policies.enable({
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(),
-            policyDatas: enableData.erc1271Policies,
+            policyDatas: enableData.erc7739Policies.erc1271Policies,
             smartAccount: account,
             useRegistry: useRegistry
         });
@@ -296,7 +296,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(account),
             smartAccount: account,
-            policyDatas: enableData.erc1271Policies
+            policyDatas: enableData.erc7739Policies.erc1271Policies
         });
         bool action = $actionPolicies.areEnabled({
             signerId: signerId,
@@ -329,6 +329,9 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
         override
         returns (bytes4 result)
     {
+        // disallow that session can be authorized by other sessions
+        if (sender == address(this)) return 0xffffffff;
+
         bool success = _erc1271IsValidSignatureViaNestedEIP712(sender, hash, _erc1271UnwrapSignature(signature));
         /// @solidity memory-safe-assembly
         assembly {
@@ -341,7 +344,8 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
     function _erc1271IsValidSignatureNowCalldata(
         address sender,
         bytes32 hash,
-        bytes calldata signature
+        bytes calldata signature,
+        bytes calldata contents
     )
         internal
         view
@@ -349,15 +353,19 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
         override
         returns (bool valid)
     {
-        console2.log("sender", sender);
-        console2.logBytes32(hash);
-        SignerId signerId;
+        bytes32 contentHash = keccak256(contents);
+        console2.log(string(contents));
+        SignerId signerId = SignerId.wrap(bytes32(signature[0:32]));
+        signature = signature[32:];
+        SessionId sessionId = signerId.toErc1271PolicyId().toSessionId(msg.sender);
+        if (!$enabledERC1271Content[signerId][contentHash][msg.sender]) return false;
         valid = $erc1271Policies.checkERC1271({
             account: msg.sender,
             requestSender: sender,
             hash: hash,
             signature: signature,
             signerId: signerId,
+            sessionId: sessionId,
             minPoliciesToEnforce: 0 // TODO: discuss with fil
          });
 

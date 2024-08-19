@@ -52,7 +52,7 @@ struct EnableSessions {
     ISigner isigner;
     bytes isignerInitData;
     PolicyData[] userOpPolicies;
-    PolicyData[] erc1271Policies;
+    ERC7739Data erc7739Policies;
     ActionData[] actions;
     bytes permissionEnableSig;
 }
@@ -71,6 +71,11 @@ struct PolicyData {
 struct ActionData {
     ActionId actionId;
     PolicyData[] actionPolicies;
+}
+
+struct ERC7739Data {
+    string[] allowedERC7739Content;
+    PolicyData[] erc1271Policies;
 }
 
 ////////////////////////

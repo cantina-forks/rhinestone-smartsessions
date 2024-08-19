@@ -29,8 +29,10 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     event SessionRemoved(SignerId signerId, address smartAccount);
 
     Policy internal $userOpPolicies;
-    Policy internal $erc1271Policies;
     EnumerableActionPolicy internal $actionPolicies;
+    Policy internal $erc1271Policies;
+    mapping(SignerId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
+        $enabledERC1271Content;
     mapping(ISigner signer => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
 
     mapping(SignerId signerId => mapping(address smartAccount => SignerConf)) internal $isigners;
