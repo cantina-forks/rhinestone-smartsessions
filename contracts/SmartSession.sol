@@ -21,7 +21,7 @@ import { IAccountExecute } from "modulekit/external/ERC4337.sol";
 import { IUserOpPolicy, IActionPolicy } from "contracts/interfaces/IPolicy.sol";
 
 import { PolicyLib } from "./lib/PolicyLib.sol";
-import { SignerLib } from "./lib/SignerLib.sol";
+import { SignerLib, NO_SIGNER_REQUIRED } from "./lib/SignerLib.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 
@@ -31,13 +31,14 @@ import { IdLib } from "./lib/IdLib.sol";
 import { HashLib } from "./lib/HashLib.sol";
 
 import "forge-std/console2.sol";
+
 /**
  * TODO:
  *     ✅ The flow where permission doesn't enable the new signer, just adds policies for the existing one
  *     - ISigner => Stateless Sig Validator (discussed with zeroknots
  *               https://biconomyworkspace.slack.com/archives/D063X01CUEA/p1720520086702069)
  *     - MultiChain Permission Enable Data (chainId is in EncodeLib.digest now)
- *     - 'No Signature verification required' flow
+ *     ✅ 'No Signature verification required' flow
  *     - No policies (sudo) flow. What do we do with minPoliciesToEnforce ?
  *     - ERC-1271 (security => do not allow validating sig requests from itself)
  *     - Renouncing permissions
@@ -87,13 +88,9 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
                 decompressedSignature: packedSig.decodeUse(),
                 account: account
             });
-        } else if (mode == SmartSessionMode.ENABLE) {
-            // TODO: implement enable with registry.
-            // registry check will break 4337 so it would make sense to have this in a opt in mode
-        }
-        else if (mode == SmartSessionMode.UNSAFE_ENABLE) {
+        } else if (mode == SmartSessionMode.ENABLE || mode == SmartSessionMode.UNSAFE_ENABLE) {
             bytes memory usePermissionSig =
-                _enablePolicies({ signerId: signerId, packedSig: packedSig, account: account });
+                _enablePolicies({ signerId: signerId, packedSig: packedSig, account: account, mode: mode });
             vd = _enforcePolicies({
                 signerId: signerId,
                 userOpHash: userOpHash,
@@ -114,7 +111,8 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
     function _enablePolicies(
         SignerId signerId,
         bytes calldata packedSig,
-        address account
+        address account,
+        SmartSessionMode mode
     )
         internal
         returns (bytes memory permissionUseSig)
@@ -123,7 +121,7 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
         (enableData, permissionUseSig) = packedSig.decodeEnable();
 
         uint256 nonce = $signerNonce[enableData.isigner][account]++;
-        bytes32 hash = enableData.digest(nonce);
+        bytes32 hash = enableData.isigner.digest(nonce, enableData, mode);
         if (signerId != getSignerId(enableData.isigner, enableData.isignerInitData)) {
             revert InvalidSignerId();
         }
@@ -144,20 +142,30 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
             _enableISigner(signerId, account, enableData.isigner, enableData.isignerInitData);
         }
 
+        console2.log(mode == SmartSessionMode.UNSAFE_ENABLE ? "Unsafe Enable" : "Enable");
+        bool useRegistry = mode != SmartSessionMode.UNSAFE_ENABLE;
+
         // enable all policies for this session
         $userOpPolicies.enable({
             signerId: signerId,
             sessionId: signerId.toUserOpPolicyId().toSessionId(),
             policyDatas: enableData.userOpPolicies,
-            smartAccount: account
+            smartAccount: account,
+            useRegistry: useRegistry
         });
         $erc1271Policies.enable({
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(),
             policyDatas: enableData.erc1271Policies,
-            smartAccount: account
+            smartAccount: account,
+            useRegistry: useRegistry
         });
-        $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: enableData.actions, smartAccount: account });
+        $actionPolicies.enable({
+            signerId: signerId,
+            actionPolicyDatas: enableData.actions,
+            smartAccount: account,
+            useRegistry: useRegistry
+        });
     }
 
     /**

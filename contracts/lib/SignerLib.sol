@@ -3,7 +3,12 @@ pragma solidity ^0.8.25;
 
 import "../DataTypes.sol";
 import "../interfaces/ISigner.sol";
+import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { IdLib } from "./IdLib.sol";
+
+import "forge-std/console2.sol";
+
+address constant NO_SIGNER_REQUIRED = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
 library SignerLib {
     using IdLib for *;
@@ -26,36 +31,16 @@ library SignerLib {
         ISigner isigner = $isigners[signerId][account].isigner;
         if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);
 
-        // check signature of ISigner first.
-        // policies only need to be processed if the signature is correct
-        if (
-            isigner.validateSignatureWithData({
-                hash: hash,
-                sig: signature,
-                data: $isigners[signerId][account].config.load()
-            }) == false
-        ) revert InvalidSessionKeySignature(signerId, isigner, account, hash);
-    }
-
-    function isValidSigner(
-        mapping(SignerId => mapping(address => SignerConf)) storage $isigners,
-        bytes32 hash,
-        address account,
-        SignerId signerId,
-        bytes memory signature
-    )
-        internal
-        returns (bool valid)
-    {
-        ISigner isigner = $isigners[signerId][account].isigner;
-        if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);
-
-        // check signature of ISigner first.
-        // policies only need to be processed if the signature is correct
-        valid = isigner.validateSignatureWithData({
-            hash: hash,
-            sig: signature,
-            data: $isigners[signerId][account].config.load()
-        });
+        if (address(isigner) != NO_SIGNER_REQUIRED) {
+            // check signature of ISigner first.
+            // policies only need to be processed if the signature is correct
+            if (
+                isigner.validateSignatureWithData({
+                    hash: userOpHash,
+                    sig: signature,
+                    data: $isigners[signerId][account].config.load()
+                }) == false
+            ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
+        }
     }
 }

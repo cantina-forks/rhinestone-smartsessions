@@ -213,10 +213,9 @@ library PolicyLib {
             ActionId actionId = actionPolicyData.actionId;
             SessionId sessionId = signerId.toSessionId(actionId, smartAccount);
             if (
-                $self.enabledActionIds[signerId].contains(smartAccount, ActionId.unwrap(actionId))
-                    && $self.actionPolicies[actionId].areEnabled(
-                        signerId, sessionId, smartAccount, actionPolicyData.actionPolicies
-                    )
+                $self.actionPolicies[actionId].areEnabled(
+                    signerId, sessionId, smartAccount, actionPolicyData.actionPolicies
+                )
             ) actionsProperlyEnabled++;
         }
         if (actionsProperlyEnabled == 0) return false;

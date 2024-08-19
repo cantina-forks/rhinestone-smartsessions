@@ -14,11 +14,13 @@ import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, Execution } from "moduleki
 import { SmartSession } from "contracts/SmartSession.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { ISigner } from "contracts/interfaces/ISigner.sol";
+import { IRegistry } from "contracts/interfaces/IRegistry.sol";
 import "contracts/DataTypes.sol";
 import { EncodeLib } from "contracts/lib/EncodeLib.sol";
 import { YesSigner } from "./mock/YesSigner.sol";
 import { MockTarget } from "./mock/MockTarget.sol";
 import { YesPolicy } from "./mock/YesPolicy.sol";
+import { MockRegistry } from "./mock/MockRegistry.sol";
 import { SimpleSigner } from "./mock/SimpleSigner.sol";
 import { SimpleGasPolicy } from "./mock/SimpleGasPolicy.sol";
 import { TimeFramePolicy } from "./mock/TimeFramePolicy.sol";
@@ -29,6 +31,8 @@ import { UserOperationBuilder } from "contracts/erc7679/UserOpBuilder.sol";
 import { ModeLib, ModeCode as ExecutionMode } from "erc7579/lib/ModeLib.sol";
 
 import "forge-std/console2.sol";
+
+IRegistry constant registry = IRegistry(0x0000000000E23E0033C3e93D9D4eBc2FF2AB2AEF);
 
 contract SmartSessionTest is RhinestoneModuleKit, Test {
     using ModuleKitHelpers for *;
@@ -58,6 +62,9 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         instance = makeAccountInstance("smartaccount");
         mockK1 = new MockK1Validator();
 
+        IRegistry _registry = IRegistry(address(new MockRegistry()));
+        vm.etch(address(registry), address(_registry).code);
+
         owner = makeAccount("owner");
         sessionSigner1 = makeAccount("sessionSigner1");
         sessionSigner2 = makeAccount("sessionSigner2");
@@ -71,8 +78,8 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         timeFramePolicy = new TimeFramePolicy();
         valueLimitPolicy = new ValueLimitPolicy();
 
-        defaultSigner1 = smartSession.getSignerId(simpleSigner, abi.encodePacked(sessionSigner1.addr));
-        defaultSigner2 = smartSession.getSignerId(simpleSigner, abi.encodePacked(sessionSigner2.addr));
+        defaultSigner1 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner1.addr));
+        defaultSigner2 = smartSession.getSignerId(ISigner(address(simpleSigner)), abi.encodePacked(sessionSigner2.addr));
 
         instance.installModule({
             moduleTypeId: MODULE_TYPE_VALIDATOR,
@@ -139,7 +146,7 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
 
         EnableSessions memory enableData = _prepareMockEnableData();
 
-        bytes memory rawSig = sign(userOpData.userOpHash, sessionSigner1.key);
+        bytes memory rawSig = sign(userOpData.userOpHash, sessionSigner2.key);
         userOpData.userOp.signature = EncodeLib.encodeEnable(defaultSigner2, rawSig, enableData);
         userOpData.execUserOps();
         assertEq(target.getValue(), valueToSet);
@@ -258,7 +265,8 @@ contract SmartSessionTest is RhinestoneModuleKit, Test {
         });
 
         // sign enableData hash
-        bytes32 hash = smartSession.getDigest(enableData.isigner, instance.account, enableData);
+        bytes32 hash =
+            smartSession.getDigest(enableData.isigner, instance.account, enableData, SmartSessionMode.UNSAFE_ENABLE);
         enableData.permissionEnableSig = abi.encodePacked(address(mockK1), sign(hash, owner.key));
     }
 }

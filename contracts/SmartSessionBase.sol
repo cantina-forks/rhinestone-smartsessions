@@ -10,7 +10,7 @@ import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
-import { HashLib } from "./lib/HashLib.sol";
+import { NO_SIGNER_REQUIRED } from "./lib/SignerLib.sol";
 
 abstract contract SmartSessionBase is ERC7579ValidatorBase {
     using FlatBytesLib for *;
@@ -35,9 +35,10 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     mapping(SignerId signerId => mapping(address smartAccount => SignerConf)) internal $isigners;
 
     function _enableISigner(SignerId signerId, address account, ISigner isigner, bytes memory signerConfig) internal {
-        if (!isigner.supportsInterface(type(ISigner).interfaceId)) {
+        if (!isigner.supportsInterface(type(ISigner).interfaceId) && address(isigner) != NO_SIGNER_REQUIRED) {
             revert InvalidISigner(isigner);
         }
+        // TODO: add registry check
         SignerConf storage $conf = $isigners[signerId][account];
         $conf.isigner = isigner;
         $conf.config.store(signerConfig);
@@ -48,7 +49,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
             signerId: signerId,
             sessionId: signerId.toUserOpPolicyId().toSessionId(),
             policyDatas: userOpPolicies,
-            smartAccount: msg.sender
+            smartAccount: msg.sender,
+            useRegistry: true
         });
     }
 
@@ -57,12 +59,18 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
             signerId: signerId,
             sessionId: signerId.toErc1271PolicyId().toSessionId(),
             policyDatas: erc1271Policies,
-            smartAccount: msg.sender
+            smartAccount: msg.sender,
+            useRegistry: true
         });
     }
 
     function enableActionPolicies(SignerId signerId, ActionData[] memory actionPolicies) public {
-        $actionPolicies.enable({ signerId: signerId, actionPolicyDatas: actionPolicies, smartAccount: msg.sender });
+        $actionPolicies.enable({
+            signerId: signerId,
+            actionPolicyDatas: actionPolicies,
+            smartAccount: msg.sender,
+            useRegistry: true
+        });
     }
 
     function enableSessions(InstallSessions[] memory sessions) public {
@@ -118,9 +126,18 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
         return typeID == TYPE_VALIDATOR;
     }
 
-    function getDigest(ISigner isigner, address account, EnableSessions memory data) external view returns (bytes32) {
+    function getDigest(
+        ISigner isigner,
+        address account,
+        EnableSessions memory data,
+        SmartSessionMode mode
+    )
+        external
+        view
+        returns (bytes32)
+    {
         uint256 nonce = $signerNonce[isigner][account];
-        return data.digest(nonce);
+        return isigner.digest(nonce, data, mode);
     }
 
     function getSignerId(ISigner isigner, bytes memory isignerInitData) public pure returns (SignerId signerId) {
