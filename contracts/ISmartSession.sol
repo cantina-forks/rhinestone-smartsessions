@@ -52,4 +52,6 @@ interface ISmartSession {
         external
         view
         returns (bytes4 sigValidationResult);
+
+    function eip712Domain() external view returns (bytes32);
 }

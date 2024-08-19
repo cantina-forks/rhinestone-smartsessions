@@ -124,7 +124,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     function isInitialized(address smartAccount) external view returns (bool) { }
 
     function isModuleType(uint256 typeID) external pure override returns (bool) {
-        return typeID == TYPE_VALIDATOR;
+        if (typeID == TYPE_VALIDATOR) return true;
+        if (typeID == TYPE_FALLBACK) return true;
     }
 
     function getDigest(

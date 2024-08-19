@@ -349,6 +349,8 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
         override
         returns (bool valid)
     {
+        console2.log("sender", sender);
+        console2.logBytes32(hash);
         SignerId signerId;
         valid = $erc1271Policies.checkERC1271({
             account: msg.sender,

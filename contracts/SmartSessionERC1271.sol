@@ -1,6 +1,7 @@
 import { EIP712 } from "solady/utils/EIP712.sol";
 import { ERC1271 } from "solady/accounts/ERC1271.sol";
 import { SignatureCheckerLib } from "solady/utils/SignatureCheckerLib.sol";
+import "forge-std/console2.sol";
 
 /// @notice ERC1271 mixin with nested EIP-712 approach.
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/accounts/ERC1271.sol)
@@ -149,6 +150,7 @@ abstract contract SmartSessionERC1271 is EIP712 {
         returns (bool result)
     {
         bytes32 t = _typedDataSignFields();
+        bytes32 _content;
         /// @solidity memory-safe-assembly
         assembly {
             let m := mload(0x40) // Cache the free memory pointer.
@@ -195,10 +197,12 @@ abstract contract SmartSessionERC1271 is EIP712 {
                 // Compute the final hash, corrupted if `contentsName` is invalid.
                 hash := keccak256(0x1e, add(0x42, and(1, d)))
                 signature.length := sub(signature.length, l) // Truncate the signature.
+                _content := p
                 break
             }
             mstore(0x40, m) // Restore the free memory pointer.
         }
+        console2.logBytes32(_content);
         if (t == bytes32(0)) hash = _hashTypedData(hash); // `PersonalSign` workflow.
         result = _erc1271IsValidSignatureNowCalldata(sender, hash, signature);
     }
