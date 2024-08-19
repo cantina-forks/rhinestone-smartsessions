@@ -12,12 +12,14 @@ import "../interfaces/IRegistry.sol";
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { Bytes32ArrayMap4337, ArrayMap4337Lib } from "./ArrayMap4337Lib.sol";
 import { IdLib } from "./IdLib.sol";
+import { HashLib } from "./HashLib.sol";
 
 library ConfigLib {
     using SentinelList4337Lib for SentinelList4337Lib.SentinelList;
     using ConfigLib for *;
     using ArrayMap4337Lib for *;
     using IdLib for *;
+    using HashLib for string;
 
     error UnsupportedPolicy(address policy);
 
@@ -77,6 +79,21 @@ library ConfigLib {
             $self.actionPolicies[actionId].enable(
                 signerId, sessionId, actionPolicyData.actionPolicies, smartAccount, useRegistry
             );
+        }
+    }
+
+    function enable(
+        mapping(SessionId => mapping(bytes32 => mapping(address => bool))) storage $enabledERC7739Content,
+        string[] memory contents,
+        SessionId sessionId,
+        address smartAccount
+    )
+        internal
+    {
+        uint256 length = contents.length;
+        for (uint256 i; i < length; i++) {
+            bytes32 contentHash = contents[i].hashERC7739Content();
+            $enabledERC7739Content[sessionId][contentHash][smartAccount] = true;
         }
     }
 

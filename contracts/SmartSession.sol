@@ -153,18 +153,26 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
             smartAccount: account,
             useRegistry: useRegistry
         });
-        $erc1271Policies.enable({
-            signerId: signerId,
-            sessionId: signerId.toErc1271PolicyId().toSessionId(),
-            policyDatas: enableData.erc7739Policies.erc1271Policies,
-            smartAccount: account,
-            useRegistry: useRegistry
-        });
         $actionPolicies.enable({
             signerId: signerId,
             actionPolicyDatas: enableData.actions,
             smartAccount: account,
             useRegistry: useRegistry
+        });
+
+        SessionId sessionId = signerId.toErc1271PolicyId().toSessionId(msg.sender);
+        $erc1271Policies.enable({
+            signerId: signerId,
+            sessionId: sessionId,
+            policyDatas: enableData.erc7739Policies.erc1271Policies,
+            smartAccount: account,
+            useRegistry: useRegistry
+        });
+
+        $enabledERC7739Content.enable({
+            contents: enableData.erc7739Policies.allowedERC7739Content,
+            sessionId: sessionId,
+            smartAccount: account
         });
     }
 
@@ -353,12 +361,12 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
         override
         returns (bool valid)
     {
-        bytes32 contentHash = keccak256(contents);
         console2.log(string(contents));
+        bytes32 contentHash = string(contents).hashERC7739Content();
         SignerId signerId = SignerId.wrap(bytes32(signature[0:32]));
         signature = signature[32:];
         SessionId sessionId = signerId.toErc1271PolicyId().toSessionId(msg.sender);
-        if (!$enabledERC1271Content[signerId][contentHash][msg.sender]) return false;
+        if (!$enabledERC7739Content[sessionId][contentHash][msg.sender]) return false;
         valid = $erc1271Policies.checkERC1271({
             account: msg.sender,
             requestSender: sender,
@@ -366,8 +374,8 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
             signature: signature,
             signerId: signerId,
             sessionId: sessionId,
-            minPoliciesToEnforce: 0 // TODO: discuss with fil
-         });
+            minPoliciesToEnforce: 0
+        });
 
         if (!valid) return false;
         // this call reverts if the ISigner is not set or signature is invalid

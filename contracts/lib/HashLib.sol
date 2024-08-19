@@ -59,4 +59,8 @@ library HashLib {
             abi.encode(ACTION_POLICY_DATA_TYPEHASH, actionData.actionId, hashPolicyDataArray(actionData.actionPolicies))
         );
     }
+
+    function hashERC7739Content(string memory content) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(content));
+    }
 }

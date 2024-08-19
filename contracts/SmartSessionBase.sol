@@ -31,8 +31,8 @@ abstract contract SmartSessionBase is ERC7579ValidatorBase {
     Policy internal $userOpPolicies;
     EnumerableActionPolicy internal $actionPolicies;
     Policy internal $erc1271Policies;
-    mapping(SignerId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
-        $enabledERC1271Content;
+    mapping(SessionId => mapping(bytes32 contentHash => mapping(address account => bool enabled))) internal
+        $enabledERC7739Content;
     mapping(ISigner signer => mapping(address smartAccount => uint256 nonce)) internal $signerNonce;
 
     mapping(SignerId signerId => mapping(address smartAccount => SignerConf)) internal $isigners;
