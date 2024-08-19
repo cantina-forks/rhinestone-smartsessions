@@ -8,6 +8,7 @@ import "@rhinestone/flatbytes/src/BytesLib.sol";
 import { SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ConfigLib } from "./lib/ConfigLib.sol";
+import { HashLib } from "./lib/HashLib.sol";
 import { EncodeLib } from "./lib/EncodeLib.sol";
 import { IdLib } from "./lib/IdLib.sol";
 import { NO_SIGNER_REQUIRED } from "./lib/SignerLib.sol";

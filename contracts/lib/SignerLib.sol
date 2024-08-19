@@ -31,16 +31,37 @@ library SignerLib {
         ISigner isigner = $isigners[signerId][account].isigner;
         if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);
 
-        if (address(isigner) != NO_SIGNER_REQUIRED) {
-            // check signature of ISigner first.
-            // policies only need to be processed if the signature is correct
-            if (
-                isigner.validateSignatureWithData({
-                    hash: userOpHash,
-                    sig: signature,
-                    data: $isigners[signerId][account].config.load()
-                }) == false
-            ) revert InvalidSessionKeySignature(signerId, isigner, account, userOpHash);
-        }
+        // check signature of ISigner first.
+        // policies only need to be processed if the signature is correct
+        if (
+            isigner.validateSignatureWithData({
+                hash: hash,
+                sig: signature,
+                data: $isigners[signerId][account].config.load()
+            }) == false
+        ) revert InvalidSessionKeySignature(signerId, isigner, account, hash);
+    }
+
+    function isValidISigner(
+        mapping(SignerId => mapping(address => SignerConf)) storage $isigners,
+        bytes32 hash,
+        address account,
+        SignerId signerId,
+        bytes memory signature
+    )
+        internal
+        view
+        returns (bool)
+    {
+        ISigner isigner = $isigners[signerId][account].isigner;
+        if (address(isigner) == address(0)) revert SignerNotFound(signerId, account);
+
+        // check signature of ISigner first.
+        // policies only need to be processed if the signature is correct
+        return isigner.validateSignatureWithData({
+            hash: hash,
+            sig: signature,
+            data: $isigners[signerId][account].config.load()
+        });
     }
 }

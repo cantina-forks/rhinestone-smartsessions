@@ -11,5 +11,6 @@ interface ISigner is ISubPermission {
         bytes calldata data
     )
         external
+        view
         returns (bool validSig);
 }

@@ -361,6 +361,6 @@ contract SmartSession is SmartSessionBase, SmartSessionERC1271 {
 
         if (!valid) return false;
         // this call reverts if the ISigner is not set or signature is invalid
-        return $isigners.isValidSigner({ hash: hash, account: msg.sender, signerId: signerId, signature: signature });
+        return $isigners.isValidISigner({ hash: hash, account: msg.sender, signerId: signerId, signature: signature });
     }
 }

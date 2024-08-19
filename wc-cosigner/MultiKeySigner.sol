@@ -3,6 +3,7 @@
 pragma solidity ^0.8.23;
 
 import { ECDSA } from "solady/utils/ECDSA.sol";
+import { PackedUserOperation  } from "modulekit/external/ERC4337.sol";
 import "./passkey.sol";
 import "contracts/interfaces/ISigner.sol";
 import { SubLib } from "contracts/lib/SubLib.sol";
