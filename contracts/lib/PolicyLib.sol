@@ -28,7 +28,7 @@ import {
 
 import { ERC7579ValidatorBase } from "modulekit/Modules.sol";
 import { ValidationDataLib } from "contracts/lib/ValidationDataLib.sol";
-import { IActionPolicy } from "../interfaces/IPolicy.sol";
+import { IActionPolicy, I1271Policy } from "../interfaces/IPolicy.sol";
 import { IdLib } from "./IdLib.sol";
 
 import { SENTINEL, SentinelList4337Lib } from "sentinellist/SentinelList4337.sol";
@@ -50,6 +50,38 @@ library PolicyLib {
 
     function isFailed(ERC7579ValidatorBase.ValidationData packedData) internal pure returns (bool sigFailed) {
         sigFailed = (ERC7579ValidatorBase.ValidationData.unwrap(packedData) & 1) == 1;
+    }
+
+    function checkERC1271(
+        Policy storage $self,
+        address account,
+        address requestSender,
+        bytes32 hash,
+        bytes calldata signature,
+        SignerId signerId,
+        uint256 minPoliciesToEnforce
+    )
+        internal
+        view
+        returns (bool valid)
+    {
+        (address[] memory policies,) = $self.policyList[signerId].getEntriesPaginated(account, SENTINEL, 32);
+        uint256 length = policies.length;
+        if (minPoliciesToEnforce > length) revert NoPoliciesSet(signerId);
+
+        SessionId sessionId; // TODO: derive sessionId
+
+        // iterate over all policies and intersect the validation data
+        for (uint256 i; i < length; i++) {
+            valid = I1271Policy(policies[i]).check1271SignedAction({
+                id: sessionId,
+                requestSender: requestSender,
+                account: account,
+                hash: hash,
+                signature: signature
+            });
+            if (!valid) return false;
+        }
     }
 
     function check(
